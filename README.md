@@ -1,48 +1,48 @@
 # Solid × TSRX field lab
 
-Небольшой Vite-проект на TypeScript, собранный как исследовательский стенд для `tsrx` на Solid.
+A small Vite + TypeScript project built as an interactive lab for exploring TSRX on Solid.
 
-## Что внутри
+## What's inside
 
-Проект показывает и сравнивает:
+The project demonstrates and compares:
 
 - `createSignal` + `createMemo`
-- `if / switch / return;` прямо в шаблоне
-- `for...of` с `index` и `key`
-- `ref` в виде `{ref node}`
-- `try / pending / catch` для lazy/error boundaries
-- scoped `<style>` в `.tsrx`
-- `<tsx>` для JSX-as-value
-- dynamic elements через `<@tag>`
-- style composition через `#style.className`
+- `if / switch / return;` directly in the template
+- `for...of` with `index` and `key`
+- `ref` via `{ref node}`
+- `try / pending / catch` for lazy/error boundaries
+- scoped `<style>` in `.tsrx`
+- `<tsx>` for JSX-as-value
+- dynamic elements via `<@tag>`
+- style composition via `#style.className`
 
-У каждого стенда есть переключатель между:
+Each module has a toggle between:
 
-- `TSRX`
-- `JSX mental model`
+- `.TSRX` — the actual source syntax
+- `.JSX` — the equivalent mental model in classic JSX
 
-чтобы было проще понять, где новая запись действительно удобнее.
+so it's easy to see where the new syntax is genuinely better.
 
-## Почему здесь Solid 2 beta
+## Why Solid 2 beta
 
-Согласно документации TSRX для Solid target, конструкции
+Per the TSRX docs for the Solid target, the constructs
 
 - `try { ... } catch { ... }`
 - `try { ... } pending { ... }`
 
-компилируются в `Errored` и `Loading`, а они доступны в Solid 2.
+compile to `Errored` and `Loading`, which are only available in Solid 2.
 
-Поэтому проект использует связку:
+The project uses:
 
 - `solid-js@2.0.0-beta.7`
 - `@solidjs/web@2.0.0-beta.7`
 - `vite-plugin-solid@3.0.0-next.5`
 
-На текущем состоянии экосистемы это самый рабочий вариант для Solid 2 beta.
+This is currently the most stable combination for Solid 2 beta.
 
-## Настройка TSRX + Solid + Vite
+## TSRX + Solid + Vite setup
 
-Конфиг основан на свежем getting started из `tsrx.dev`:
+Config based on the latest getting started from `tsrx.dev`:
 
 ```ts
 import { defineConfig } from 'vite'
@@ -57,11 +57,11 @@ export default defineConfig({
 })
 ```
 
-Порядок важен: сначала `tsrxSolid()`, потом `solid()`.
+Plugin order matters: `tsrxSolid()` first, then `solid()`.
 
-`optimizeDeps.noDiscovery` здесь включён как практический workaround для dev-режима Vite 8 + Rolldown, чтобы dependency scan не ломался на виртуальных `.tsrx.tsx` модулях.
+`optimizeDeps.noDiscovery` is enabled as a practical workaround for Vite 8 + Rolldown dev mode, preventing the dependency scanner from choking on virtual `.tsrx.tsx` modules.
 
-## Команды
+## Commands
 
 ```bash
 pnpm install
@@ -70,42 +70,42 @@ pnpm build
 pnpm check
 ```
 
-## Что важно знать про текущее состояние TSRX
+## Current TSRX caveats
 
-TSRX очень свежий, поэтому в проекте отдельно зафиксированы практические caveats:
+TSRX is very new, so the project documents several practical caveats:
 
-1. `tsc` сам по себе ещё не воспринимает `.tsrx` как такой же нативный source type, как `.tsx`.
-   - поэтому production build идёт через `vite build`
-   - для TS-импортов добавлен `src/tsrx.d.ts`
-2. `{html ...}` для Solid target не поддерживается — нужно использовать `innerHTML`
-3. Самый интересный синтаксис boundary-веток сейчас завязан на Solid 2 beta
+1. `tsc` does not yet treat `.tsrx` as a first-class source type like `.tsx`.
+   - production builds go through `vite build`
+   - `src/tsrx.d.ts` is added for TS imports
+2. `{html ...}` is not supported on the Solid target — use `innerHTML` instead
+3. The most interesting boundary syntax currently depends on Solid 2 beta
 
-## Полезные источники, которые были использованы
+## References
 
 - `https://tsrx.dev/getting-started`
 - `https://tsrx.dev/features`
 - `https://tsrx.dev/llms.txt`
 - `vite-plugin-solid`
-- Solid 2 control-flow RFC / docs про `Loading` и `Errored`
+- Solid 2 control-flow RFC / docs on `Loading` and `Errored`
 
-## Структура
+## Structure
 
-- `src/App.tsrx` — основной экран со всеми демо
-- `src/components/FeatureCard.tsrx` — карточка стенда с переключением TSRX/JSX
-- `src/components/ToneChip.tsrx` — мелкий компонент для style composition
-- `src/components/AsyncPreview.tsrx` — lazy-модуль для pending boundary
-- `src/snippets.ts` — строки с примерами TSRX vs JSX
+- `src/App.tsrx` — main screen with all six interactive modules
+- `src/components/FeatureCard.tsrx` — module card with TSRX/JSX snippet toggle
+- `src/components/ToneChip.tsrx` — small chip component for style composition
+- `src/components/AsyncPreview.tsrx` — lazy module for the pending boundary demo
+- `src/snippets.ts` — TSRX vs JSX code examples
 
-## Вывод после первой сборки
+## Takeaways
 
-Если смотреть именно на Solid target, то самые сильные стороны TSRX здесь такие:
+Strongest sides of TSRX on the Solid target:
 
-- control flow выглядит как обычный язык, а не как набор JSX-хелперов
-- scoped styles встроены очень естественно
-- `#style` и `<tsx>` закрывают реальные эргономические дыры
+- Control flow reads like real language constructs, not JSX helper components
+- Scoped styles are built into the language naturally
+- `#style` and `<tsx>` close real ergonomic gaps
 
-Самые спорные моменты пока такие:
+Open questions:
 
-- экосистема ещё сырая
-- typecheck и toolchain вокруг `.tsrx` пока не так отполированы, как вокруг `.tsx`
-- для advanced features уже приходится думать о версии Solid и совместимости плагинов
+- The ecosystem is still very early
+- Typecheck and tooling around `.tsrx` is not yet as polished as `.tsx`
+- Advanced features already require thinking about Solid version and plugin compatibility
