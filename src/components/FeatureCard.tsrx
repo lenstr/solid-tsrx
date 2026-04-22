@@ -236,7 +236,6 @@ export default component FeatureCard(
       appearance: none;
       background: transparent;
       border: 1px solid var(--border-visible);
-      border-right: none;
       padding: 8px 14px;
       font-family: var(--font-mono);
       font-size: 11px;
@@ -244,6 +243,10 @@ export default component FeatureCard(
       color: var(--text-secondary);
       cursor: pointer;
       min-height: 36px;
+    }
+
+    .code-tab + .code-tab {
+      margin-left: -1px;
     }
 
     .code-tab:hover {
@@ -254,6 +257,8 @@ export default component FeatureCard(
       background: var(--text-display);
       color: var(--black);
       border-color: var(--text-display);
+      position: relative;
+      z-index: 1;
     }
 
     .code-collapse {
