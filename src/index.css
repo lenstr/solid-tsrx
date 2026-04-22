@@ -1,0 +1,89 @@
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+:root {
+  color-scheme: dark;
+  font-family: 'IBM Plex Mono', monospace;
+  line-height: 1.5;
+  font-weight: 400;
+  color: rgba(245, 247, 255, 0.92);
+  background:
+    radial-gradient(circle at top, rgba(82, 90, 255, 0.22), transparent 38%),
+    radial-gradient(circle at bottom right, rgba(255, 106, 196, 0.14), transparent 28%),
+    #050711;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 24%),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    radial-gradient(circle at top, rgba(82, 90, 255, 0.22), transparent 38%),
+    radial-gradient(circle at bottom right, rgba(255, 106, 196, 0.14), transparent 28%),
+    #050711;
+  background-size: auto, 40px 40px, 40px 40px, auto, auto, auto;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.12;
+  background-image:
+    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.7) 0, transparent 22%),
+    radial-gradient(circle at 80% 0, rgba(255, 255, 255, 0.45) 0, transparent 18%),
+    radial-gradient(circle at 30% 80%, rgba(255, 255, 255, 0.35) 0, transparent 18%);
+  background-size: 220px 220px;
+  mix-blend-mode: soft-light;
+}
+
+body,
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+a {
+  color: inherit;
+}
+
+button {
+  font-family: inherit;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-weight: 800;
+  color: #fbfcff;
+}
+
+::selection {
+  background: rgba(131, 143, 255, 0.38);
+  color: white;
+}
