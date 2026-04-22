@@ -7,7 +7,7 @@ metadata:
   stack:
     - solid-2
     - solid-js
-    - @solidjs/web
+    - "@solidjs/web"
     - typescript
 ---
 

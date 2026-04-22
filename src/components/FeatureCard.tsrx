@@ -3,7 +3,8 @@ import { createSignal } from 'solid-js';
 type Mode = 'tsrx' | 'jsx';
 
 type Props = {
-  label: string;
+  index: string;
+  kind: string;
   title: string;
   summary: string;
   insight: string;
@@ -14,221 +15,279 @@ type Props = {
 };
 
 export default component FeatureCard(
-  &{ label, title, summary, insight, tsrxCode, jsxCode, marker, children }: Props,
+  &{ index, kind, title, summary, insight, tsrxCode, jsxCode, marker, children }: Props,
 ) {
   let &[mode, setMode] = createSignal<Mode>('tsrx');
+  let &[open, setOpen] = createSignal(false);
 
-  <article class="feature-card">
-    <header class="card-head">
-      <div>
-        <p class="eyebrow">{label}</p>
-        <div class="title-row">
-          <h2>{title}</h2>
+  <article class="card">
+    <div class="card-inner">
+      <header class="card-head">
+        <div class="card-eyebrow">
+          <span class="card-index mono">{index}</span>
+          <span class="card-kind mono">{kind}</span>
           if (marker) {
-            <div class="marker">{marker}</div>
+            <span class="card-marker">{marker}</span>
           }
         </div>
-        <p class="summary">{summary}</p>
+        <h2 class="card-title">{title}</h2>
+        <p class="card-summary">{summary}</p>
+      </header>
+
+      <div class="card-sandbox">{children}</div>
+
+      <div class="card-insight">
+        <span class="mono insight-tag">{'//'}</span>
+        <p>{insight}</p>
       </div>
 
-      <div class="tabs" role="tablist" aria-label={`${title} code mode`}>
-        <button
-          type="button"
-          class={mode() === 'tsrx' ? 'tab active' : 'tab'}
-          aria-pressed={mode() === 'tsrx'}
-          onClick={() => setMode('tsrx')}
-        >
-          {'TSRX'}
-        </button>
-        <button
-          type="button"
-          class={mode() === 'jsx' ? 'tab active' : 'tab'}
-          aria-pressed={mode() === 'jsx'}
-          onClick={() => setMode('jsx')}
-        >
-          {'JSX mental model'}
-        </button>
+      <div class="card-code">
+        <div class="code-head">
+          <span class="mono code-head-label">{'[ SNIPPET ]'}</span>
+          <div class="code-toggle">
+            <button
+              type="button"
+              class={mode() === 'tsrx' ? 'code-tab on' : 'code-tab'}
+              aria-pressed={mode() === 'tsrx'}
+              onClick={() => setMode('tsrx')}
+            >
+              {'.TSRX'}
+            </button>
+            <button
+              type="button"
+              class={mode() === 'jsx' ? 'code-tab on' : 'code-tab'}
+              aria-pressed={mode() === 'jsx'}
+              onClick={() => setMode('jsx')}
+            >
+              {'.JSX'}
+            </button>
+            <button
+              type="button"
+              class="code-collapse"
+              onClick={() => setOpen(!open())}
+              aria-expanded={open()}
+            >
+              {open() ? '[ HIDE ]' : '[ SHOW ]'}
+            </button>
+          </div>
+        </div>
+
+        if (open()) {
+          <pre class="code-block"><code>{mode() === 'tsrx' ? tsrxCode : jsxCode}</code></pre>
+        }
       </div>
-    </header>
-
-    <div class="sandbox">{children}</div>
-
-    <div class="insight-strip">
-      <span class="insight-label">{'Зачем это интересно'}</span>
-      <p>{insight}</p>
-    </div>
-
-    <div class="code-wrap">
-      <pre>
-        <code>{mode() === 'tsrx' ? tsrxCode : jsxCode}</code>
-      </pre>
     </div>
   </article>
 
   <style>
-    .feature-card {
-      position: relative;
-      display: grid;
-      gap: 1.2rem;
-      padding: 1.35rem;
-      border-radius: 1.5rem;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      background:
-        radial-gradient(circle at top right, rgba(118, 120, 255, 0.18), transparent 32%),
-        linear-gradient(180deg, rgba(14, 17, 31, 0.95), rgba(8, 11, 22, 0.92));
-      box-shadow:
-        0 24px 60px rgba(1, 4, 15, 0.45),
-        inset 0 1px 0 rgba(255, 255, 255, 0.06);
-      overflow: hidden;
+    .card {
+      display: flex;
+      border-top: 1px solid var(--border-visible);
+      border-right: 1px solid var(--border);
     }
 
-    .feature-card::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background:
-        linear-gradient(125deg, rgba(255, 255, 255, 0.06), transparent 28%),
-        linear-gradient(transparent 55%, rgba(255, 255, 255, 0.03));
-      pointer-events: none;
+    .card:nth-child(2n) {
+      border-right: none;
+    }
+
+    @media (max-width: 899px) {
+      .card {
+        border-right: none !important;
+      }
+    }
+
+    @media (min-width: 1800px) {
+      .card:nth-child(2n) {
+        border-right: 1px solid var(--border);
+      }
+
+      .card:nth-child(3n) {
+        border-right: none;
+      }
+    }
+
+    .card-inner {
+      display: grid;
+      gap: 32px;
+      padding: 48px 40px;
+      width: 100%;
+    }
+
+    @media (max-width: 899px) {
+      .card-inner {
+        padding: 32px 24px;
+      }
+    }
+
+    @media (min-width: 1800px) {
+      .card-inner {
+        padding: 56px 48px;
+        gap: 36px;
+      }
     }
 
     .card-head {
       display: grid;
-      gap: 1rem;
+      gap: 16px;
     }
 
-    .eyebrow {
-      margin: 0;
-      color: rgba(151, 162, 255, 0.88);
-      font-size: 0.78rem;
-      text-transform: uppercase;
-      letter-spacing: 0.18em;
-    }
-
-    .title-row {
+    .card-eyebrow {
       display: flex;
       align-items: center;
-      gap: 0.85rem;
+      gap: 12px;
       flex-wrap: wrap;
     }
 
-    h2 {
-      margin: 0;
-      font-size: clamp(1.25rem, 1rem + 1vw, 1.8rem);
-      line-height: 1;
+    .card-index {
+      display: inline-grid;
+      place-items: center;
+      min-width: 48px;
+      height: 48px;
+      padding: 0 14px;
+      background: var(--text-display);
+      color: var(--black);
+      font-size: 16px;
+      letter-spacing: 0.08em;
+      font-weight: 700;
     }
 
-    .marker {
+    .card-kind {
+      font-size: 12px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+    }
+
+    .card-marker {
+      margin-left: auto;
+    }
+
+    .card-title {
+      font-family: var(--font-body);
+      font-size: clamp(26px, 2.4vw, 34px);
+      font-weight: 500;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      color: var(--text-display);
+      max-width: 24ch;
+    }
+
+    .card-summary {
+      font-size: 16px;
+      line-height: 1.6;
+      color: var(--text-secondary);
+      max-width: 58ch;
+    }
+
+    .card-sandbox {
+      display: grid;
+      padding: 32px 0;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .card-insight {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 14px;
+      align-items: baseline;
+    }
+
+    .insight-tag {
+      color: var(--text-display);
+      font-size: 16px;
+      letter-spacing: 0;
+    }
+
+    .card-insight p {
+      font-size: 15px;
+      line-height: 1.6;
+      color: var(--text-primary);
+      max-width: 58ch;
+    }
+
+    .card-code {
+      display: grid;
+      gap: 12px;
+    }
+
+    .code-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .code-head-label {
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      color: var(--text-disabled);
+      text-transform: uppercase;
+    }
+
+    .code-toggle {
       display: inline-flex;
       align-items: center;
-      gap: 0.45rem;
-      min-height: 2rem;
+      gap: 0;
     }
 
-    .summary {
-      margin: 0;
-      max-width: 64ch;
-      color: rgba(217, 222, 255, 0.72);
-      line-height: 1.6;
-    }
-
-    .tabs {
-      display: inline-flex;
-      flex-wrap: wrap;
-      gap: 0.55rem;
-    }
-
-    .tab {
+    .code-tab {
       appearance: none;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      background: rgba(5, 8, 16, 0.66);
-      color: rgba(235, 238, 255, 0.7);
-      border-radius: 999px;
-      padding: 0.6rem 0.9rem;
-      font: inherit;
-      font-size: 0.78rem;
-      letter-spacing: 0.04em;
+      background: transparent;
+      border: 1px solid var(--border-visible);
+      border-right: none;
+      padding: 8px 14px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      color: var(--text-secondary);
       cursor: pointer;
-      transition:
-        transform 180ms ease,
-        border-color 180ms ease,
-        color 180ms ease,
-        background 180ms ease;
+      min-height: 36px;
     }
 
-    .tab:hover,
-    .tab:focus-visible {
-      transform: translateY(-1px);
-      border-color: rgba(160, 170, 255, 0.4);
-      color: rgba(244, 246, 255, 0.95);
-      outline: none;
+    .code-tab:hover {
+      color: var(--text-primary);
     }
 
-    .active {
-      background: linear-gradient(135deg, rgba(120, 122, 255, 0.28), rgba(255, 122, 210, 0.18));
-      border-color: rgba(164, 169, 255, 0.4);
-      color: white;
-      box-shadow: 0 12px 24px rgba(87, 90, 255, 0.18);
+    .code-tab.on {
+      background: var(--text-display);
+      color: var(--black);
+      border-color: var(--text-display);
     }
 
-    .sandbox {
-      position: relative;
-      display: grid;
-      gap: 1rem;
-      padding: 1rem;
-      border-radius: 1.1rem;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 24%),
-        rgba(3, 5, 12, 0.84);
+    .code-collapse {
+      appearance: none;
+      background: transparent;
+      border: 1px solid var(--border-visible);
+      padding: 8px 14px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      color: var(--text-secondary);
+      cursor: pointer;
+      margin-left: 10px;
+      min-height: 36px;
     }
 
-    .insight-strip {
-      display: grid;
-      gap: 0.4rem;
-      padding: 0.95rem 1rem;
-      border-radius: 1rem;
-      background: rgba(95, 102, 255, 0.12);
-      border: 1px solid rgba(147, 156, 255, 0.18);
+    .code-collapse:hover {
+      color: var(--text-primary);
+      border-color: var(--text-primary);
     }
 
-    .insight-strip p {
+    .code-block {
       margin: 0;
-      color: rgba(236, 239, 255, 0.82);
-      line-height: 1.55;
-    }
-
-    .insight-label {
-      color: rgba(182, 190, 255, 0.88);
-      font-size: 0.76rem;
-      text-transform: uppercase;
-      letter-spacing: 0.18em;
-    }
-
-    .code-wrap {
-      position: relative;
-      border-radius: 1.05rem;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      background: rgba(1, 3, 10, 0.92);
-      overflow: auto;
-    }
-
-    pre {
-      margin: 0;
-      padding: 1rem;
-      min-height: 14rem;
-      font-size: 0.82rem;
+      padding: 24px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      font-family: var(--font-mono);
+      font-size: 13.5px;
       line-height: 1.65;
-      color: rgba(228, 232, 255, 0.88);
+      color: var(--text-primary);
+      overflow: auto;
       white-space: pre-wrap;
       word-break: break-word;
-    }
-
-    @media (min-width: 760px) {
-      .card-head {
-        grid-template-columns: minmax(0, 1fr) auto;
-        align-items: start;
-      }
+      max-height: 28rem;
     }
   </style>
 }

@@ -1,19 +1,64 @@
-@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Doto:wght@400..800&family=Space+Grotesk:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap');
 
 :root {
   color-scheme: dark;
-  font-family: 'IBM Plex Mono', monospace;
-  line-height: 1.5;
+
+  --black: #111113;
+  --surface: #18181b;
+  --surface-raised: #222225;
+  --border: #2a2a2e;
+  --border-visible: #3a3a3f;
+  --border-strong: #555;
+  --text-disabled: #606068;
+  --text-secondary: #9090a0;
+  --text-primary: #d8d8e0;
+  --text-display: #f0f0f5;
+
+  --accent: #d71921;
+  --success: #4a9e5c;
+  --warning: #d4a843;
+
+  --dot-color: #222228;
+
+  --font-display: 'Doto', 'Space Mono', monospace;
+  --font-body: 'Space Grotesk', system-ui, sans-serif;
+  --font-mono: 'Space Mono', 'JetBrains Mono', monospace;
+
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  --space-3xl: 64px;
+  --space-4xl: 96px;
+
+  font-family: var(--font-body);
   font-weight: 400;
-  color: rgba(245, 247, 255, 0.92);
-  background:
-    radial-gradient(circle at top, rgba(82, 90, 255, 0.22), transparent 38%),
-    radial-gradient(circle at bottom right, rgba(255, 106, 196, 0.14), transparent 28%),
-    #050711;
+  line-height: 1.5;
+  color: var(--text-primary);
+  background: var(--black);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+:root.light {
+  color-scheme: light;
+
+  --black: #f2f2f0;
+  --surface: #ffffff;
+  --surface-raised: #eaeae8;
+  --border: #e0e0dc;
+  --border-visible: #c8c8c4;
+  --border-strong: #a0a0a0;
+  --text-disabled: #a0a09a;
+  --text-secondary: #6a6a64;
+  --text-primary: #2a2a28;
+  --text-display: #0a0a08;
+
+  --dot-color: #ddddd8;
 }
 
 * {
@@ -28,28 +73,10 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 24%),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
-    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
-    radial-gradient(circle at top, rgba(82, 90, 255, 0.22), transparent 38%),
-    radial-gradient(circle at bottom right, rgba(255, 106, 196, 0.14), transparent 28%),
-    #050711;
-  background-size: auto, 40px 40px, 40px 40px, auto, auto, auto;
-}
-
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.12;
-  background-image:
-    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.7) 0, transparent 22%),
-    radial-gradient(circle at 80% 0, rgba(255, 255, 255, 0.45) 0, transparent 18%),
-    radial-gradient(circle at 30% 80%, rgba(255, 255, 255, 0.35) 0, transparent 18%);
-  background-size: 220px 220px;
-  mix-blend-mode: soft-light;
+  background: var(--black);
+  background-image: radial-gradient(circle, var(--dot-color) 1px, transparent 1px);
+  background-size: 24px 24px;
+  background-position: 0 0;
 }
 
 body,
@@ -77,13 +104,31 @@ h2,
 h3,
 h4,
 h5,
-h6 {
-  font-family: 'Bricolage Grotesque', sans-serif;
-  font-weight: 800;
-  color: #fbfcff;
+h6,
+p,
+ul {
+  margin: 0;
+}
+
+ul {
+  padding: 0;
+  list-style: none;
 }
 
 ::selection {
-  background: rgba(131, 143, 255, 0.38);
-  color: white;
+  background: var(--text-display);
+  color: var(--black);
+}
+
+.label {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.mono {
+  font-family: var(--font-mono);
 }

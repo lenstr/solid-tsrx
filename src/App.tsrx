@@ -19,39 +19,48 @@ const LazyPreview = lazy(() => delayImport(() => import('./components/AsyncPrevi
 
 component SessionGate(&{ armed, phase }: { armed: boolean; phase: Phase }) {
   if (!armed) {
-    <div class="guard-fallback">
-      <strong>{'Guard clause:'}</strong>
-      <p>{'ранний return; рендерит предупреждение и обрывает оставшуюся ветку компонента.'}</p>
+    <div class="gate gate-warn">
+      <p class="gate-label">{'[ GUARD ]'}</p>
+      <p>{'Early return; the rest of the component branch is aborted.'}</p>
     </div>
     return;
   }
 
-  <div class="phase-output">
+  <div class="gate">
+    <p class="gate-label">{'[ PHASE OUTPUT ]'}</p>
     switch (phase) {
       case 'idle':
-        <p>{'Стенд тихий. Можно безопасно менять состояние.'}</p>
+        <p>{'Bench is quiet. Safe to mutate state.'}</p>
         break;
       case 'active':
-        <p>{'Стенд активен. TSRX даёт обычный if/switch без Show и Match.'}</p>
+        <p>{'Bench is live. TSRX lets you use plain if / switch without Show or Match.'}</p>
         break;
       default:
-        <p>{'Стенд поймал ошибочный режим. Хороший кандидат для try/catch boundary.'}</p>
+        <p class="gate-error">{'Invalid mode detected. Good candidate for a try / catch boundary.'}</p>
     }
   </div>
 }
 
 component FuseBox(&{ attempts }: { attempts: number }) {
   if (attempts >= 4) {
-    throw new Error('FuseBox перегрелся: граница ошибки сработала после 4-го импульса.');
+    throw new Error('FuseBox overheated — error boundary triggered after pulse 4.');
   }
 
-  <div class="fuse-box">
-    <strong>{'FuseBox stable'}</strong>
-    <p>{`Текущих импульсов: ${attempts} / 4`}</p>
+  <div class="gate">
+    <p class="gate-label">{'[ FUSE STABLE ]'}</p>
+    <p class="mono">{`PULSES ${attempts} / 4`}</p>
   </div>
 }
 
 export default component App() {
+  let &[dark, setDark] = createSignal(true);
+
+  const toggleTheme = () => {
+    const next = !dark();
+    setDark(next);
+    document.documentElement.classList.toggle('light', !next);
+  };
+
   let &[count, setCount] = createSignal(2);
   let &[effectRuns, setEffectRuns] = createSignal(0, { pureWrite: true });
   let &[phase, setPhase] = createSignal<Phase>('idle');
@@ -61,7 +70,7 @@ export default component App() {
   let &[asyncCycle, setAsyncCycle] = createSignal(1);
   let &[headingTag, setHeadingTag] = createSignal<HeadingTag>('h2');
   let &[noteCompact, setNoteCompact] = createSignal(false);
-  let &[meterReport, setMeterReport] = createSignal('Ещё не измеряли DOM-узел.');
+  let &[meterReport, setMeterReport] = createSignal('— not measured');
   let &[probes, setProbes] = createSignal<Probe[]>([
     { id: 1, name: 'Signal coil', stage: 'live', score: 82 },
     { id: 2, name: 'Boundary relay', stage: 'queued', score: 63 },
@@ -73,6 +82,7 @@ export default component App() {
   let meter: HTMLDivElement | undefined;
 
   const magnitude = createMemo(() => Math.min(100, Math.max(0, (count() + 4) * 8.4)));
+  const segments = createMemo(() => Math.round(magnitude() / 5));
   const temperature = createMemo(() => {
     if (count() <= 0) return 'cold';
     if (count() >= 6) return 'blazing';
@@ -82,12 +92,11 @@ export default component App() {
     if (filter() === 'all') return probes();
     return probes().filter((item) => item.stage === filter());
   });
-  const completion = createMemo(() => {
-    const liveItems = probes().filter((item) => item.stage === 'live').length;
-    return `${liveItems}/${probes().length} live`;
-  });
+  const liveCount = createMemo(() => probes().filter((item) => item.stage === 'live').length);
+  const probeTotal = createMemo(() => probes().length);
+  const magnitudeDisplay = createMemo(() => Math.round(magnitude()));
   const compositionMarker = <tsx>
-    <ToneChip label="<tsx> marker" muted />
+    <ToneChip label="<tsx>" muted />
   </tsx>;
 
   const nudgeCount = (delta: number) => {
@@ -115,7 +124,7 @@ export default component App() {
 
   const measureMeter = () => {
     const width = meter?.getBoundingClientRect().width ?? 0;
-    setMeterReport(`DOM ref замерил ${width.toFixed(0)}px`);
+    setMeterReport(`${width.toFixed(0)} PX`);
   };
 
   createEffect(
@@ -133,124 +142,160 @@ export default component App() {
     return () => window.removeEventListener('resize', onResize);
   });
 
-  <div class="app-shell">
-    <div class="hero-glow hero-glow-a" aria-hidden="true" />
-    <div class="hero-glow hero-glow-b" aria-hidden="true" />
-
-    <header class="hero">
-      <div class="hero-copy">
-        <p class="kicker">{'Solid × TSRX field lab'}</p>
-        <h1>{'Шесть интерактивных стендов для изучения .tsrx вместо JSX'}</h1>
-        <p class="lede">
-          {'Проект специально собран вокруг реальных Solid-примитивов, но UI пишется на TSRX: с statement-based JSX, if/for/switch/try прямо в шаблоне и локальными <style> блоками.'}
-        </p>
-
-        <div class="chip-row">
-          <ToneChip label="TSRX 0.0.5" />
-          <ToneChip label="Solid 2 beta" />
-          <ToneChip label="Vite 8" />
-        </div>
+  <div class="app">
+    <header class="top-bar">
+      <span class="top-bar-left">{'[ SOLID × TSRX ]'}</span>
+      <span class="top-bar-mid">{'FIELD LAB / v0.0.5'}</span>
+      <div class="top-bar-right">
+        <button type="button" class="theme-btn" onClick={toggleTheme} aria-label="Toggle theme">
+          {dark() ? '◐ LIGHT' : '◑ DARK'}
+        </button>
+        <span>{'VITE 8 · SOLID 2β'}</span>
       </div>
-
-      <aside class="hero-panel">
-        <div class="mini-stat">
-          <span>{'Что тестируем'}</span>
-          <strong>{'signals, refs, control flow, loops, boundaries, scoped styles'}</strong>
-        </div>
-        <div class="mini-stat">
-          <span>{'Почему Solid 2 beta'}</span>
-          <strong>{'TSRX переводит try/pending/catch в Loading + Errored'}</strong>
-        </div>
-        <div class="mini-stat">
-          <span>{'Важно помнить'}</span>
-          <strong>{'Build идёт через Vite: tsc пока не понимает .tsrx как полноценный source type.'}</strong>
-        </div>
-      </aside>
     </header>
 
-    <section class="overview-grid">
-      <div class="overview-card">
-        <span>{'Reactive pulse'}</span>
-        <strong>{count}{' / '}{temperature}</strong>
+    <section class="hero">
+      <div class="hero-index">
+        <span class="hero-num">{'06'}</span>
+        <span class="hero-num-label">{'INTERACTIVE MODULES'}</span>
       </div>
-      <div class="overview-card">
-        <span>{'Effects fired'}</span>
-        <strong>{effectRuns}</strong>
+      <div class="hero-copy">
+        <h1 class="hero-title">
+          {'Six benches '}<br />{'for writing UI '}<br />{'in .tsrx, '}<em>{'not JSX.'}</em>
+        </h1>
+        <p class="hero-lede">
+          {'A focused lab around real Solid primitives, but the UI is authored in TSRX — with statement-based JSX, if / for / switch / try in the template, and local '}<span class="mono">{'<style>'}</span>{' blocks.'}
+        </p>
       </div>
-      <div class="overview-card">
-        <span>{'Probe coverage'}</span>
-        <strong>{completion}</strong>
+      <aside class="hero-meta">
+        <div class="meta-row">
+          <span class="label">{'[ SCOPE ]'}</span>
+          <span>{'signals · refs · control flow · loops · boundaries · scoped styles'}</span>
+        </div>
+        <div class="meta-row">
+          <span class="label">{'[ WHY SOLID 2β ]'}</span>
+          <span>{'TSRX compiles try / pending / catch → Loading + Errored.'}</span>
+        </div>
+        <div class="meta-row">
+          <span class="label">{'[ CAVEAT ]'}</span>
+          <span>{'Build runs through Vite; tsc does not yet treat .tsrx as a first-class source type.'}</span>
+        </div>
+      </aside>
+    </section>
+
+    <section class="telemetry">
+      <div class="telemetry-head">
+        <span class="label">{'[ LIVE TELEMETRY ]'}</span>
+        <span class="label dim">{'— READ-ONLY'}</span>
       </div>
-      <div class="overview-card">
-        <span>{'Current phase'}</span>
-        <strong>{phase}</strong>
+      <div class="telemetry-grid">
+        <div class="stat">
+          <span class="label">{'PULSE'}</span>
+          <strong class="stat-value mono">{count}</strong>
+          <span class="stat-unit">{temperature}</span>
+        </div>
+        <div class="stat">
+          <span class="label">{'EFFECTS'}</span>
+          <strong class="stat-value mono">{effectRuns}</strong>
+          <span class="stat-unit">{'RUNS'}</span>
+        </div>
+        <div class="stat">
+          <span class="label">{'PROBES LIVE'}</span>
+          <strong class="stat-value mono">{liveCount}{'/'}{probeTotal}</strong>
+          <span class="stat-unit">{'ACTIVE'}</span>
+        </div>
+        <div class="stat">
+          <span class="label">{'PHASE'}</span>
+          <strong class={phase() === 'error' ? 'stat-value mono stat-alert' : 'stat-value mono'}>
+            {phase}
+          </strong>
+          <span class="stat-unit">
+            if (phase() === 'error') {
+              <span class="dot-red" />
+            } else {
+              <span class="dot-ok" />
+            }
+            {phase() === 'error' ? 'FAULT' : 'NOMINAL'}
+          </span>
+        </div>
       </div>
     </section>
 
-    <main class="feature-grid">
+    <main class="modules">
       <FeatureCard
-        label="01 · signals + memos"
-        title="Живая шкала на createSignal"
-        summary="Сигналы и memo — тот же Solid, но инициализация состояния приятнее за счёт lazy array destructuring: let &[count, setCount]."
-        insight="Самое заметное отличие — не нужен return (...) и не нужны Show-обёртки для простых ветвлений. Код течёт почти как обычный TypeScript-файл с вкраплённым UI."
+        index="01"
+        kind="SIGNALS + MEMOS"
+        title="A live scale driven by createSignal"
+        summary="Signals and memo are the same Solid you know — but state initialization reads nicer via lazy array destructuring: let &[count, setCount]."
+        insight="No wrapping return (...) and no Show just for simple branching. Code flows almost like a regular TypeScript file with UI sprinkled in."
         tsrxCode={snippets.signals.tsrx}
         jsxCode={snippets.signals.jsx}
       >
-        <div class="signal-lab">
-          <div class="signal-row">
-            <button type="button" class="ghost-button" onClick={() => nudgeCount(-1)}>
-              {'−1'}
-            </button>
-            <div class="readout">
-              <strong>{count}</strong>
-              <span>{temperature}</span>
+        <div class="panel">
+          <div class="big-readout">
+            <span class="label">{'SIGNAL VALUE'}</span>
+            <div class="readout-row">
+              <button type="button" class="btn btn-ghost" onClick={() => nudgeCount(-1)}>
+                {'— 1'}
+              </button>
+              <span class="readout-num mono">{count}</span>
+              <button type="button" class="btn btn-ghost" onClick={() => nudgeCount(1)}>
+                {'+ 1'}
+              </button>
             </div>
-            <button type="button" class="ghost-button" onClick={() => nudgeCount(1)}>
-              {'+1'}
-            </button>
+            <span class="label dim">{'STATE · '}{temperature}</span>
           </div>
 
           <input
             type="range"
             min="-4"
             max="8"
+            class="range"
             value={String(count())}
             onInput={(event) => setCount(Number(event.currentTarget.value))}
           />
 
-          <div class="meter-wrap">
-            <div class="meter-bar">
-              <div class="meter-fill" style={{ width: `${magnitude()}%` }} />
+          <div class="seg-meter">
+            <div class="seg-meter-head">
+              <span class="label">{'MAGNITUDE'}</span>
+              <span class="mono">{magnitudeDisplay}{' / 100'}</span>
             </div>
-            <p>{'effect() отработал '}{effectRuns}{' раз(а)'}</p>
+            <div class="seg-bar" aria-hidden="true">
+              for (const slot of [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]; index i; key slot) {
+                <span class={i() < segments() ? 'seg seg-on' : 'seg'} />
+              }
+            </div>
+            <div class="seg-meter-foot">
+              <span class="label dim">{'EFFECT RUNS'}</span>
+              <span class="mono">{effectRuns}</span>
+            </div>
           </div>
         </div>
       </FeatureCard>
 
       <FeatureCard
-        label="02 · conditions + switch + return"
-        title="Обычный control flow вместо JSX-хелперов"
-        summary="TSRX разрешает писать if / else / switch прямо в шаблоне. Для guard clause — bare return; без return JSX."
-        insight="В сравнении с JSX это ощущается как возврат к обычному языку. Ветки читаются линейно, а не через дерево из Show / Switch / Match компонентов."
+        index="02"
+        kind="CONDITIONS · SWITCH · RETURN"
+        title="Plain control flow instead of JSX helpers"
+        summary="TSRX accepts if / else / switch directly in the template. Guard clauses use a bare return; — no JSX inside it."
+        insight="Branches read linearly, top-to-bottom, rather than as a tree of Show / Switch / Match components."
         tsrxCode={snippets.controlFlow.tsrx}
         jsxCode={snippets.controlFlow.jsx}
       >
-        <div class="phase-panel">
-          <div class="button-group">
-            <button type="button" class={phase() === 'idle' ? 'state-button active-state' : 'state-button'} onClick={() => setPhase('idle')}>
-              {'idle'}
-            </button>
-            <button type="button" class={phase() === 'active' ? 'state-button active-state' : 'state-button'} onClick={() => setPhase('active')}>
-              {'active'}
-            </button>
-            <button type="button" class={phase() === 'error' ? 'state-button active-state' : 'state-button'} onClick={() => setPhase('error')}>
-              {'error'}
-            </button>
+        <div class="panel">
+          <div class="field">
+            <span class="label">{'PHASE'}</span>
+            <div class="seg-ctrl">
+              <button type="button" class={phase() === 'idle' ? 'seg-btn on' : 'seg-btn'} onClick={() => setPhase('idle')}>{'IDLE'}</button>
+              <button type="button" class={phase() === 'active' ? 'seg-btn on' : 'seg-btn'} onClick={() => setPhase('active')}>{'ACTIVE'}</button>
+              <button type="button" class={phase() === 'error' ? 'seg-btn on danger' : 'seg-btn'} onClick={() => setPhase('error')}>{'ERROR'}</button>
+            </div>
           </div>
 
-          <label class="toggle-line">
+          <label class="toggle">
             <input type="checkbox" checked={sessionOpen()} onChange={() => setSessionOpen(!sessionOpen())} />
-            <span>{'session armed'}</span>
+            <span class="toggle-track"><span class="toggle-thumb" /></span>
+            <span class="label">{'SESSION ARMED'}</span>
           </label>
 
           <SessionGate armed={sessionOpen()} phase={phase()} />
@@ -258,37 +303,40 @@ export default component App() {
       </FeatureCard>
 
       <FeatureCard
-        label="03 · for + lexical scope"
-        title="Списки через for...of с index и key"
-        summary="У цикла есть optional clauses: index и key. А внутри каждой итерации можно объявлять локальные const прямо рядом с разметкой."
-        insight="Это один из самых убедительных кейсов TSRX: список выглядит как реальный цикл языка, а не callback внутри компонента-обёртки."
+        index="03"
+        kind="FOR · LEXICAL SCOPE"
+        title="Lists as real for…of loops"
+        summary="Optional clauses: index and key. Local consts can be declared right next to the markup — same file, same scope."
+        insight="One of the most convincing TSRX moments — the list is an actual language loop, not a callback inside a wrapper component."
         tsrxCode={snippets.loops.tsrx}
         jsxCode={snippets.loops.jsx}
       >
-        <div class="probe-panel">
-          <div class="button-group compact">
-            <button type="button" class={filter() === 'all' ? 'state-button active-state' : 'state-button'} onClick={() => setFilter('all')}>
-              {'all'}
-            </button>
-            <button type="button" class={filter() === 'queued' ? 'state-button active-state' : 'state-button'} onClick={() => setFilter('queued')}>
-              {'queued'}
-            </button>
-            <button type="button" class={filter() === 'live' ? 'state-button active-state' : 'state-button'} onClick={() => setFilter('live')}>
-              {'live'}
-            </button>
+        <div class="panel">
+          <div class="field">
+            <span class="label">{'STAGE FILTER'}</span>
+            <div class="seg-ctrl">
+              <button type="button" class={filter() === 'all' ? 'seg-btn on' : 'seg-btn'} onClick={() => setFilter('all')}>{'ALL'}</button>
+              <button type="button" class={filter() === 'queued' ? 'seg-btn on' : 'seg-btn'} onClick={() => setFilter('queued')}>{'QUEUED'}</button>
+              <button type="button" class={filter() === 'live' ? 'seg-btn on' : 'seg-btn'} onClick={() => setFilter('live')}>{'LIVE'}</button>
+            </div>
           </div>
 
-          <ul class="probe-list">
+          <ul class="probes">
             for (const probe of visibleProbes(); index i; key probe.id) {
               const current = probe();
               const heat = current.score >= 85 ? 'hot' : current.score >= 70 ? 'warm' : 'cold';
-              <li class="probe-item">
-                <div>
-                  <strong>{`${i() + 1}. ${current.name}`}</strong>
-                  <p>{`stage: ${current.stage} · score: ${current.score} · mood: ${heat}`}</p>
+              <li class="probe">
+                <div class="probe-id mono">{`0${i() + 1}`.slice(-2)}</div>
+                <div class="probe-body">
+                  <strong class="probe-name">{current.name}</strong>
+                  <div class="probe-meta">
+                    <span class="label">{current.stage}</span>
+                    <span class="mono">{current.score}</span>
+                    <span class="label dim">{heat}</span>
+                  </div>
                 </div>
-                <button type="button" class="ghost-button small" onClick={() => promoteProbe(current.id)}>
-                  {'advance'}
+                <button type="button" class="btn btn-ghost btn-sm" onClick={() => promoteProbe(current.id)}>
+                  {'ADVANCE →'}
                 </button>
               </li>
             }
@@ -297,84 +345,89 @@ export default component App() {
       </FeatureCard>
 
       <FeatureCard
-        label="04 · refs + DOM work"
-        title="DOM refs в фигурных скобках"
-        summary="{ref expr} работает и с переменной, и с callback. Здесь используем ref для фокуса и измерения узла после mount/resize."
-        insight="Синтаксис ref в TSRX компактный и хорошо сочетается с prop shorthand: {ref input}, {onClick}. С точки зрения ergonomics это приятнее стандартного ref={...}."
+        index="04"
+        kind="REFS · DOM WORK"
+        title="DOM refs in braces"
+        summary="{ref expr} accepts either a variable or a callback. Here we focus and measure a node after mount and on resize."
+        insight="Ref syntax is compact and pairs well with prop shorthand: {ref input}, {onClick}."
         tsrxCode={snippets.refs.tsrx}
         jsxCode={snippets.refs.jsx}
       >
-        <div class="ref-panel">
-          <div class="ref-controls">
+        <div class="panel">
+          <label class="field">
+            <span class="label">{'NOTE INPUT'}</span>
             <input
               {ref searchInput}
               type="text"
               value={'TSRX feels like template-native TypeScript'}
-              class="lab-input"
+              class="text-input mono"
               aria-label="tsrx note"
             />
-            <div class="button-group compact">
-              <button type="button" class="ghost-button" onClick={focusSearch}>
-                {'focus & select'}
-              </button>
-              <button type="button" class="ghost-button" onClick={measureMeter}>
-                {'measure meter'}
-              </button>
-            </div>
+          </label>
+
+          <div class="row-actions">
+            <button type="button" class="btn btn-primary" onClick={focusSearch}>
+              {'FOCUS & SELECT'}
+            </button>
+            <button type="button" class="btn btn-ghost" onClick={measureMeter}>
+              {'MEASURE'}
+            </button>
           </div>
 
           <div class="dom-meter" {ref meter}>
-            <span>{meterReport}</span>
+            <span class="label">{'DOM REF'}</span>
+            <span class="mono dom-meter-val">{meterReport}</span>
           </div>
         </div>
       </FeatureCard>
 
       <FeatureCard
-        label="05 · try / pending / catch"
-        title="Границы загрузки и ошибок из языка"
-        summary="TSRX на Solid target превращает try/pending/catch в Loading и Errored. В JSX пришлось бы писать сами boundary-компоненты вручную."
-        insight="Это самая сильная 'языковая' фича TSRX. Асинхронная и error-ветка читаются как обычный control flow, а не как вложенная ceremony из компонентов."
+        index="05"
+        kind="TRY · PENDING · CATCH"
+        title="Loading and error boundaries as language constructs"
+        summary="On the Solid target TSRX compiles try / pending / catch into Loading and Errored. Classic JSX needs the boundary components wired by hand."
+        insight="This is the strongest 'language' feature of TSRX. Async and error branches read as plain control flow — no component ceremony."
         tsrxCode={snippets.boundaries.tsrx}
         jsxCode={snippets.boundaries.jsx}
       >
-        <div class="boundary-stack">
-          <div class="boundary-actions">
-            <button type="button" class="ghost-button" onClick={() => setAsyncCycle((value) => value + 1)}>
-              {'async cycle '}{asyncCycle}
+        <div class="panel">
+          <div class="row-actions">
+            <button type="button" class="btn btn-ghost" onClick={() => setAsyncCycle((value) => value + 1)}>
+              {'ASYNC CYCLE · '}{asyncCycle}
             </button>
-            <button type="button" class="ghost-button" onClick={() => setAttempts((value) => value + 1)}>
-              {'fuse impulse '}{attempts}
+            <button type="button" class="btn btn-ghost" onClick={() => setAttempts((value) => value + 1)}>
+              {'FUSE PULSE · '}{attempts}
             </button>
           </div>
 
           <div class="boundary-grid">
-            <div>
-              <p class="boundary-label">{'pending boundary'}</p>
+            <div class="boundary">
+              <span class="label">{'[ PENDING BOUNDARY ]'}</span>
               try {
                 <LazyPreview cycle={asyncCycle()} />
               } pending {
-                <div class="boundary-fallback loading-fallback">
-                  <strong>{'Loading fallback'}</strong>
-                  <p>{'lazy() импортируется и TSRX показывает pending-блок до резолва.'}</p>
+                <div class="gate gate-loading">
+                  <p class="gate-label">{'[ LOADING… ]'}</p>
+                  <p>{'lazy() is resolving. TSRX renders the pending block until the module lands.'}</p>
                 </div>
               } catch (error) {
-                <div class="boundary-fallback error-fallback">
-                  <strong>{'Async boundary failed'}</strong>
+                <div class="gate gate-err">
+                  <p class="gate-label">{'[ ASYNC FAILED ]'}</p>
                   <p>{String(error)}</p>
                 </div>
               }
             </div>
 
-            <div>
-              <p class="boundary-label">{'error boundary'}</p>
+            <div class="boundary">
+              <span class="label">{'[ ERROR BOUNDARY ]'}</span>
               try {
                 <FuseBox attempts={attempts()} />
               } catch (error) {
-                <div class="boundary-fallback error-fallback">
-                  <strong>{'Error caught'}</strong>
+                <div class="gate gate-err">
+                  <p class="gate-label">{'[ ERROR CAUGHT ]'}</p>
                   <p>{String(error)}</p>
-                  <button type="button" class="ghost-button small" onClick={() => setAttempts(0)}>
-                    {'reset fuse'}
+                  <button type="button" class="btn btn-ghost btn-sm" onClick={() => setAttempts(0)}>
+                    {'RESET FUSE'}
                   </button>
                 </div>
               }
@@ -384,42 +437,41 @@ export default component App() {
       </FeatureCard>
 
       <FeatureCard
-        label="06 · <tsx> + dynamic tag + #style"
-        title="Композиция без утечек стилей"
-        summary="Здесь в одном месте встречаются сразу три фирменные вещи TSRX: JSX-as-value через <tsx>, dynamic element <@tag> и style composition через #style.className."
-        insight="Scoped styles внутри .tsrx ощущаются очень естественно. #style решает боль переиспользования локальных классов между компонентами без CSS Modules и без глобальных утечек."
+        index="06"
+        kind="<tsx> · DYNAMIC TAG · #style"
+        title="Composition without style leaks"
+        summary="Three TSRX-native features converge here: JSX-as-value via <tsx>, dynamic element selection, and #style.className for scoped composition."
+        insight="Scoped styles feel native inside a .tsrx file. #style closes the composition gap without CSS Modules or global leaks."
         tsrxCode={snippets.composition.tsrx}
         jsxCode={snippets.composition.jsx}
         marker={compositionMarker}
       >
-        <div class="composition-panel">
-          <div class="button-group compact">
-            <button type="button" class={headingTag() === 'h2' ? 'state-button active-state' : 'state-button'} onClick={() => setHeadingTag('h2')}>
-              {'h2'}
-            </button>
-            <button type="button" class={headingTag() === 'h3' ? 'state-button active-state' : 'state-button'} onClick={() => setHeadingTag('h3')}>
-              {'h3'}
-            </button>
-            <button type="button" class={headingTag() === 'p' ? 'state-button active-state' : 'state-button'} onClick={() => setHeadingTag('p')}>
-              {'p'}
-            </button>
+        <div class="panel">
+          <div class="field">
+            <span class="label">{'HEADING TAG'}</span>
+            <div class="seg-ctrl">
+              <button type="button" class={headingTag() === 'h2' ? 'seg-btn on' : 'seg-btn'} onClick={() => setHeadingTag('h2')}>{'H2'}</button>
+              <button type="button" class={headingTag() === 'h3' ? 'seg-btn on' : 'seg-btn'} onClick={() => setHeadingTag('h3')}>{'H3'}</button>
+              <button type="button" class={headingTag() === 'p' ? 'seg-btn on' : 'seg-btn'} onClick={() => setHeadingTag('p')}>{'P'}</button>
+            </div>
           </div>
 
-          <label class="toggle-line">
+          <label class="toggle">
             <input type="checkbox" checked={noteCompact()} onChange={() => setNoteCompact(!noteCompact())} />
-            <span>{'compact card mode'}</span>
+            <span class="toggle-track"><span class="toggle-thumb" /></span>
+            <span class="label">{'COMPACT MODE'}</span>
           </label>
 
-          <div class={noteCompact() ? 'composition-note compact-note' : 'composition-note'}>
+          <div class={noteCompact() ? 'composition-note compact' : 'composition-note'}>
             if (headingTag() === 'h2') {
               <h2 class="composition-title">{'Dynamic element picked from state'}</h2>
             } else if (headingTag() === 'h3') {
-              <h3 class="composition-title">{'Dynamic element picked from state'}</h3>
+              <h3 class="composition-title-sm">{'Dynamic element picked from state'}</h3>
             } else {
-              <p class="composition-title composition-copy">{'Dynamic element picked from state'}</p>
+              <p class="composition-copy">{'Dynamic element picked from state'}</p>
             }
-            <p>
-              {'Снизу лежат ToneChip-компоненты. Они получают className, собранный через #style, поэтому родительский scoped CSS не течёт сам по себе — только по явному контракту.'}
+            <p class="composition-body">
+              {'Below sit ToneChip components. Their className is composed via #style, so the parent\'s scoped CSS only leaks across an explicit contract.'}
             </p>
             <div class="chip-row">
               <ToneChip label="#style.sunrise" className={#style.sunrise} />
@@ -430,444 +482,789 @@ export default component App() {
       </FeatureCard>
     </main>
 
-    <section class="notes-grid">
-      <article class="notes-card">
-        <h2>{'Что особенно понравилось в TSRX'}</h2>
+    <section class="footnotes">
+      <div class="footnote">
+        <span class="label">{'[ + ] WHAT LANDED WELL'}</span>
         <ul>
-          <li>{'if / for / switch / try пишутся как реальные конструкции языка.'}</li>
-          <li>{'Scoped styles встроены в язык, а #style закрывает gap для композиции.'}</li>
-          <li>{'lazy destructuring (&{} и &[]) хорошо сочетается с реактивностью Solid.'}</li>
+          <li>{'if / for / switch / try read as actual language constructs.'}</li>
+          <li>{'Scoped styles live in the language; #style covers composition.'}</li>
+          <li>{'Lazy destructuring (&{} and &[]) pairs cleanly with Solid reactivity.'}</li>
         </ul>
-      </article>
-
-      <article class="notes-card caution-card">
-        <h2>{'Текущие caveats'}</h2>
+      </div>
+      <div class="footnote">
+        <span class="label">{'[ ! ] CAVEATS IN FLIGHT'}</span>
         <ul>
-          <li>{'Для полной поддержки try/pending/catch нужен Solid 2 beta.'}</li>
-          <li>{'raw {html ...} на Solid target не поддерживается — нужен innerHTML.'}</li>
-          <li>{'CLI typecheck через чистый tsc пока не покрывает .tsrx так же хорошо, как обычные .tsx файлы.'}</li>
+          <li>{'try / pending / catch requires Solid 2 beta.'}</li>
+          <li>{'Raw {html …} is not supported on the Solid target — use innerHTML.'}</li>
+          <li>{'tsc does not yet understand .tsrx the way it understands .tsx.'}</li>
         </ul>
-      </article>
+      </div>
     </section>
 
+    <footer class="foot">
+      <span class="label">{'[ END OF FIELD LAB ]'}</span>
+      <span class="label dim">{'// TSRX 0.0.5 · SOLID 2.0.0-β.7 · VITE 8'}</span>
+    </footer>
+
     <style>
-      .guard-fallback,
-      .phase-output,
-      .fuse-box,
-      .boundary-fallback {
-        display: grid;
-        gap: 0.45rem;
-        padding: 0.95rem 1rem;
-        border-radius: 1rem;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-      }
-
-      .guard-fallback,
-      .phase-output,
-      .fuse-box,
-      .boundary-fallback,
-      .overview-card,
-      .notes-card,
-      .hero-panel,
-      .composition-note,
-      .dom-meter {
-        background:
-          linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 28%),
-          rgba(6, 9, 18, 0.74);
-      }
-
-      .app-shell {
+      .app {
         position: relative;
-        width: min(1380px, calc(100vw - 2rem));
         margin: 0 auto;
-        padding: 3.4rem 0 5rem;
+        padding: 24px clamp(24px, 4vw, 80px) 128px;
+        font-size: 16px;
       }
 
-      .hero-glow {
-        position: fixed;
-        inset: auto;
-        width: 28rem;
-        aspect-ratio: 1;
-        border-radius: 999px;
-        filter: blur(80px);
-        opacity: 0.22;
-        pointer-events: none;
-        z-index: -1;
+      @media (min-width: 1400px) {
+        .app {
+          font-size: 17px;
+        }
       }
 
-      .hero-glow-a {
-        top: 0;
-        left: -8rem;
-        background: rgba(102, 110, 255, 0.6);
+      @media (min-width: 1800px) {
+        .app {
+          font-size: 18px;
+          padding-left: clamp(80px, 5vw, 120px);
+          padding-right: clamp(80px, 5vw, 120px);
+        }
       }
 
-      .hero-glow-b {
-        top: 12rem;
-        right: -10rem;
-        background: rgba(255, 116, 215, 0.4);
+      .top-bar {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 16px;
+        padding: 14px 0;
+        border-bottom: 1px solid var(--border);
+        font-family: var(--font-mono);
+        font-size: 12px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--text-secondary);
       }
 
+      .top-bar-mid {
+        text-align: center;
+        color: var(--text-disabled);
+      }
+
+      .top-bar-right {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        justify-content: flex-end;
+      }
+
+      .theme-btn {
+        appearance: none;
+        background: transparent;
+        border: 1px solid var(--border-visible);
+        color: var(--text-secondary);
+        font-family: var(--font-mono);
+        font-size: 11px;
+        letter-spacing: 0.14em;
+        padding: 4px 10px;
+        cursor: pointer;
+        transition: color 150ms ease-out, border-color 150ms ease-out;
+      }
+
+      .theme-btn:hover {
+        color: var(--text-display);
+        border-color: var(--text-primary);
+      }
+
+      /* HERO — asymmetric, left-weighted, hero number dominates */
       .hero {
         display: grid;
-        gap: 1.5rem;
-        padding: 1.6rem;
-        border-radius: 1.8rem;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        background:
-          radial-gradient(circle at top left, rgba(133, 138, 255, 0.18), transparent 30%),
-          linear-gradient(180deg, rgba(13, 16, 28, 0.96), rgba(8, 11, 21, 0.92));
-        box-shadow: 0 30px 80px rgba(2, 6, 18, 0.45);
+        grid-template-columns: 1fr;
+        gap: 56px;
+        padding: 120px 0 80px;
       }
 
-      .hero-copy {
-        display: grid;
-        gap: 1rem;
+      .hero-index {
+        display: flex;
+        align-items: baseline;
+        gap: 28px;
       }
 
-      .kicker {
-        margin: 0;
-        color: rgba(255, 183, 120, 0.86);
+      .hero-num {
+        font-family: var(--font-display);
+        font-size: clamp(140px, 20vw, 420px);
+        font-weight: 500;
+        line-height: 0.82;
+        letter-spacing: -0.04em;
+        color: var(--text-display);
+      }
+
+      .hero-num-label {
+        font-family: var(--font-mono);
+        font-size: 12px;
+        letter-spacing: 0.22em;
         text-transform: uppercase;
-        letter-spacing: 0.24em;
-        font-size: 0.78rem;
+        color: var(--text-secondary);
+        writing-mode: vertical-rl;
+        transform: rotate(180deg);
       }
 
-      h1,
-      h2,
-      h3,
-      p,
-      ul {
-        margin: 0;
+      .hero-title {
+        font-family: var(--font-body);
+        font-size: clamp(40px, 4.8vw, 88px);
+        font-weight: 300;
+        line-height: 1.02;
+        letter-spacing: -0.03em;
+        color: var(--text-display);
+        max-width: 18ch;
       }
 
-      h1 {
-        max-width: 13ch;
-        font-size: clamp(2.8rem, 8vw, 5.9rem);
-        line-height: 0.95;
-        letter-spacing: -0.05em;
+      .hero-title em {
+        font-style: normal;
+        font-weight: 500;
+        color: var(--text-primary);
       }
 
-      .lede {
-        max-width: 72ch;
-        color: rgba(225, 230, 255, 0.76);
-        font-size: 1.02rem;
-        line-height: 1.75;
+      .hero-lede {
+        max-width: 60ch;
+        margin-top: 28px;
+        font-size: 18px;
+        line-height: 1.6;
+        color: var(--text-secondary);
+      }
+
+      .hero-lede .mono {
+        color: var(--text-primary);
+      }
+
+      .hero-meta {
+        display: grid;
+        gap: 16px;
+        padding-top: 24px;
+        border-top: 1px solid var(--border);
+      }
+
+      .meta-row {
+        display: grid;
+        grid-template-columns: 220px 1fr;
+        gap: 24px;
+        align-items: baseline;
+        padding: 16px 0;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .meta-row:last-child {
+        border-bottom: none;
+      }
+
+      .meta-row > span:last-child {
+        color: var(--text-primary);
+        font-size: 16px;
+        line-height: 1.55;
+      }
+
+      @media (min-width: 900px) {
+        .hero {
+          grid-template-columns: minmax(auto, 44%) 1fr;
+          grid-template-rows: auto auto;
+          gap: 48px 80px;
+          align-items: end;
+        }
+
+        .hero-index {
+          grid-row: 1 / span 2;
+        }
+
+        .hero-meta {
+          grid-column: 2;
+        }
+      }
+
+      @media (min-width: 1600px) {
+        .hero {
+          gap: 64px 120px;
+          padding: 140px 0 100px;
+        }
+      }
+
+      /* TELEMETRY — stat row with ALL CAPS labels, mono values */
+      .telemetry {
+        padding: 48px 0;
+        border-top: 1px solid var(--border-visible);
+        border-bottom: 1px solid var(--border-visible);
+      }
+
+      @media (min-width: 1600px) {
+        .telemetry {
+          padding: 64px 0;
+        }
+      }
+
+      .telemetry-head {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 32px;
+      }
+
+      .dim {
+        color: var(--text-disabled) !important;
+      }
+
+      .telemetry-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 0;
+      }
+
+      .stat {
+        display: grid;
+        gap: 12px;
+        padding: 0 32px;
+        border-left: 1px solid var(--border);
+      }
+
+      .stat:first-child {
+        padding-left: 0;
+        border-left: none;
+      }
+
+      .stat-value {
+        font-size: clamp(44px, 4vw, 72px);
+        font-weight: 400;
+        line-height: 1;
+        color: var(--text-display);
+        letter-spacing: -0.02em;
+      }
+
+      .stat-alert {
+        color: var(--accent) !important;
+      }
+
+      .stat-unit {
+        font-family: var(--font-mono);
+        font-size: 12px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--text-disabled);
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .dot-red,
+      .dot-ok {
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        border-radius: 999px;
+      }
+
+      .dot-red {
+        background: var(--accent);
+      }
+
+      .dot-ok {
+        background: var(--success);
+      }
+
+      /* MODULES grid */
+      .modules {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0;
+        margin-top: 48px;
+      }
+
+      @media (min-width: 900px) {
+        .modules {
+          grid-template-columns: repeat(2, 1fr);
+          gap: 0;
+        }
+      }
+
+      @media (min-width: 1800px) {
+        .modules {
+          grid-template-columns: repeat(3, 1fr);
+        }
+      }
+
+      /* Panels inside feature cards */
+      .panel {
+        display: grid;
+        gap: 20px;
+      }
+
+      .field {
+        display: grid;
+        gap: 10px;
+      }
+
+      .big-readout {
+        display: grid;
+        gap: 8px;
+      }
+
+      .readout-row {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+
+      .readout-num {
+        flex: 1;
+        font-size: clamp(72px, 7vw, 96px);
+        line-height: 0.9;
+        letter-spacing: -0.03em;
+        color: var(--text-display);
+        text-align: center;
+        font-weight: 400;
+      }
+
+      /* Range */
+      .range {
+        width: 100%;
+        appearance: none;
+        background: var(--border);
+        height: 2px;
+        cursor: pointer;
+      }
+
+      .range::-webkit-slider-thumb {
+        appearance: none;
+        width: 12px;
+        height: 12px;
+        background: var(--text-display);
+        border-radius: 999px;
+        border: none;
+      }
+
+      .range::-moz-range-thumb {
+        width: 12px;
+        height: 12px;
+        background: var(--text-display);
+        border-radius: 999px;
+        border: none;
+      }
+
+      /* SEGMENTED METER — the signature visualization */
+      .seg-meter {
+        display: grid;
+        gap: 10px;
+        padding-top: 16px;
+        border-top: 1px solid var(--border);
+      }
+
+      .seg-meter-head,
+      .seg-meter-foot {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+      }
+
+      .seg-meter-head .mono,
+      .seg-meter-foot .mono {
+        color: var(--text-display);
+        font-size: 14px;
+      }
+
+      .seg-bar {
+        display: grid;
+        grid-template-columns: repeat(20, 1fr);
+        gap: 2px;
+      }
+
+      .seg {
+        height: 20px;
+        background: var(--border);
+      }
+
+      .seg-on {
+        background: var(--text-display);
+      }
+
+      /* SEGMENTED CONTROL */
+      .seg-ctrl {
+        display: inline-flex;
+        border: 1px solid var(--border-visible);
+      }
+
+      .seg-btn {
+        appearance: none;
+        background: transparent;
+        border: none;
+        border-right: 1px solid var(--border-visible);
+        padding: 10px 20px;
+        font-family: var(--font-mono);
+        font-size: 12px;
+        letter-spacing: 0.16em;
+        color: var(--text-secondary);
+        cursor: pointer;
+        min-height: 44px;
+        transition: background 150ms ease-out, color 150ms ease-out;
+      }
+
+      .seg-btn:last-child {
+        border-right: none;
+      }
+
+      .seg-btn:hover {
+        color: var(--text-primary);
+      }
+
+      .seg-btn.on {
+        background: var(--text-display);
+        color: var(--black);
+      }
+
+      .seg-btn.on.danger {
+        background: var(--accent);
+        color: var(--text-display);
+      }
+
+      /* BUTTONS — compact, technical, desktop-sized */
+      .btn {
+        appearance: none;
+        font-family: var(--font-mono);
+        font-size: 11px;
+        letter-spacing: 0.14em;
+        cursor: pointer;
+        min-height: 32px;
+        padding: 6px 14px;
+        border-radius: 0;
+        transition: background 150ms ease-out, border-color 150ms ease-out, color 150ms ease-out;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        white-space: nowrap;
+      }
+
+      .btn-primary {
+        background: var(--text-display);
+        color: var(--black);
+        border: 1px solid var(--text-display);
+      }
+
+      .btn-primary:hover {
+        background: var(--text-primary);
+        border-color: var(--text-primary);
+      }
+
+      .btn-ghost {
+        background: transparent;
+        color: var(--text-primary);
+        border: 1px solid var(--border-visible);
+      }
+
+      .btn-ghost:hover {
+        border-color: var(--text-primary);
+        color: var(--text-display);
+      }
+
+      .btn-sm {
+        min-height: 28px;
+        padding: 4px 10px;
+        font-size: 10px;
+      }
+
+      .row-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      /* TOGGLE */
+      .toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        cursor: pointer;
+      }
+
+      .toggle input {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .toggle-track {
+        position: relative;
+        width: 36px;
+        height: 20px;
+        border-radius: 999px;
+        background: var(--border-visible);
+        transition: background 150ms ease-out;
+      }
+
+      .toggle-thumb {
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 14px;
+        height: 14px;
+        border-radius: 999px;
+        background: var(--text-disabled);
+        transition: transform 150ms ease-out, background 150ms ease-out;
+      }
+
+      .toggle input:checked + .toggle-track {
+        background: var(--text-display);
+      }
+
+      .toggle input:checked + .toggle-track .toggle-thumb {
+        background: var(--black);
+        transform: translateX(16px);
+      }
+
+      /* GATES — the small state boxes */
+      .gate {
+        display: grid;
+        gap: 8px;
+        padding: 18px 20px;
+        border: 1px solid var(--border-visible);
+        background: var(--surface);
+      }
+
+      .gate p {
+        font-size: 15px;
+        line-height: 1.55;
+        color: var(--text-primary);
+      }
+
+      .gate-label {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--text-secondary) !important;
+      }
+
+      .gate-warn {
+        border-color: var(--warning);
+      }
+
+      .gate-err {
+        border-color: var(--accent);
+      }
+
+      .gate-err .gate-label {
+        color: var(--accent) !important;
+      }
+
+      .gate-loading {
+        border-color: var(--border-strong);
+      }
+
+      .gate-error {
+        color: var(--accent) !important;
+      }
+
+      /* PROBES list */
+      .probes {
+        display: grid;
+        gap: 0;
+        border-top: 1px solid var(--border);
+      }
+
+      .probe {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 24px;
+        align-items: center;
+        padding: 18px 0;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .probe-id {
+        color: var(--text-disabled);
+        font-size: 13px;
+        letter-spacing: 0.14em;
+      }
+
+      .probe-body {
+        display: grid;
+        gap: 6px;
+      }
+
+      .probe-name {
+        font-size: 17px;
+        font-weight: 500;
+        color: var(--text-display);
+      }
+
+      .probe-meta {
+        display: flex;
+        gap: 20px;
+        align-items: center;
+        font-size: 12px;
+      }
+
+      .probe-meta .mono {
+        color: var(--text-primary);
+      }
+
+      /* INPUT */
+      .text-input {
+        width: 100%;
+        background: transparent;
+        border: none;
+        border-bottom: 1px solid var(--border-visible);
+        color: var(--text-display);
+        font-size: 16px;
+        padding: 12px 0;
+        transition: border-color 150ms ease-out;
+      }
+
+      .text-input:focus {
+        outline: none;
+        border-bottom-color: var(--text-display);
+      }
+
+      .dom-meter {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        padding: 14px 0;
+        border-top: 1px solid var(--border);
+        border-bottom: 1px solid var(--border);
+      }
+
+      .dom-meter-val {
+        color: var(--text-display);
+        font-size: 16px;
+      }
+
+      /* BOUNDARIES */
+      .boundary-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+
+      .boundary {
+        display: grid;
+        gap: 10px;
+      }
+
+      @media (min-width: 640px) {
+        .boundary-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      /* COMPOSITION */
+      .composition-note {
+        display: grid;
+        gap: 12px;
+        padding: 16px;
+        border: 1px solid var(--border-visible);
+        background: var(--surface);
+      }
+
+      .composition-note.compact {
+        max-width: 30rem;
+      }
+
+      .composition-title {
+        font-family: var(--font-body);
+        font-size: 28px;
+        font-weight: 500;
+        line-height: 1.2;
+        letter-spacing: -0.02em;
+        color: var(--text-display);
+      }
+
+      .composition-title-sm {
+        font-family: var(--font-body);
+        font-size: 20px;
+        font-weight: 500;
+        line-height: 1.3;
+        color: var(--text-display);
+      }
+
+      .composition-copy {
+        font-size: 15px;
+        color: var(--text-secondary);
+      }
+
+      .composition-body {
+        font-size: 14px;
+        line-height: 1.55;
+        color: var(--text-secondary);
       }
 
       .chip-row {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.7rem;
-      }
-
-      .hero-panel {
-        display: grid;
-        gap: 0.9rem;
-        padding: 1rem;
-        border-radius: 1.25rem;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-      }
-
-      .mini-stat {
-        display: grid;
-        gap: 0.35rem;
-      }
-
-      .mini-stat span {
-        color: rgba(182, 191, 255, 0.72);
-        font-size: 0.76rem;
-        text-transform: uppercase;
-        letter-spacing: 0.16em;
-      }
-
-      .mini-stat strong {
-        color: rgba(243, 245, 255, 0.88);
-        font-size: 0.95rem;
-        line-height: 1.5;
-      }
-
-      .overview-grid,
-      .feature-grid,
-      .notes-grid {
-        display: grid;
-      }
-
-      .overview-grid {
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        gap: 0.9rem;
-        margin-top: 1.1rem;
-      }
-
-      .overview-card {
-        display: grid;
-        gap: 0.4rem;
-        padding: 1rem 1.1rem;
-        border-radius: 1.15rem;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-      }
-
-      .overview-card span,
-      .boundary-label {
-        color: rgba(181, 189, 255, 0.74);
-        text-transform: uppercase;
-        letter-spacing: 0.16em;
-        font-size: 0.72rem;
-      }
-
-      .overview-card strong {
-        font-size: 1.2rem;
-      }
-
-      .feature-grid {
-        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-        gap: 1rem;
-        margin-top: 1rem;
-      }
-
-      .signal-lab,
-      .phase-panel,
-      .probe-panel,
-      .ref-panel,
-      .boundary-stack,
-      .composition-panel,
-      .notes-card ul {
-        display: grid;
-        gap: 1rem;
-      }
-
-      .signal-row,
-      .button-group,
-      .boundary-actions,
-      .ref-controls {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        flex-wrap: wrap;
-      }
-
-      .readout {
-        display: grid;
-        place-items: center;
-        min-width: 6.5rem;
-        padding: 0.8rem 1rem;
-        border-radius: 1rem;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        background: rgba(255, 255, 255, 0.03);
-      }
-
-      .readout strong {
-        font-size: 2rem;
-        line-height: 1;
-      }
-
-      .readout span {
-        color: rgba(184, 192, 255, 0.76);
-        text-transform: uppercase;
-        letter-spacing: 0.18em;
-        font-size: 0.72rem;
-      }
-
-      .meter-wrap,
-      .probe-item,
-      .toggle-line,
-      .boundary-grid,
-      .notes-grid {
-        display: grid;
-        gap: 0.85rem;
-      }
-
-      .meter-bar {
-        height: 0.9rem;
-        border-radius: 999px;
-        background: rgba(255, 255, 255, 0.06);
-        overflow: hidden;
-      }
-
-      .meter-fill {
-        height: 100%;
-        border-radius: inherit;
-        background: linear-gradient(90deg, #65f0c7, #76a7ff, #ff8bd9);
-        box-shadow: 0 0 1.4rem rgba(118, 167, 255, 0.34);
-      }
-
-      input[type='range'] {
-        width: 100%;
-        accent-color: #9ca4ff;
-      }
-
-      .ghost-button,
-      .state-button {
-        appearance: none;
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        background: rgba(8, 12, 22, 0.88);
-        color: rgba(238, 241, 255, 0.88);
-        border-radius: 999px;
-        padding: 0.72rem 1rem;
-        font: inherit;
-        cursor: pointer;
-        transition:
-          transform 180ms ease,
-          border-color 180ms ease,
-          background 180ms ease;
-      }
-
-      .ghost-button:hover,
-      .ghost-button:focus-visible,
-      .state-button:hover,
-      .state-button:focus-visible {
-        transform: translateY(-1px);
-        border-color: rgba(169, 177, 255, 0.38);
-        outline: none;
-      }
-
-      .small {
-        padding: 0.58rem 0.82rem;
-        font-size: 0.8rem;
-      }
-
-      .active-state {
-        background: linear-gradient(135deg, rgba(113, 117, 255, 0.28), rgba(255, 133, 206, 0.16));
-        border-color: rgba(170, 176, 255, 0.4);
-      }
-
-      .compact {
-        gap: 0.55rem;
-      }
-
-      .toggle-line {
-        grid-auto-flow: column;
-        justify-content: start;
-        align-items: center;
-      }
-
-      .toggle-line span {
-        color: rgba(224, 229, 255, 0.78);
-      }
-
-      .probe-list,
-      .notes-card ul {
-        list-style: none;
-        padding: 0;
-      }
-
-      .probe-item {
-        grid-template-columns: minmax(0, 1fr) auto;
-        align-items: center;
-        padding: 0.9rem 1rem;
-        border-radius: 1rem;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        background: rgba(255, 255, 255, 0.03);
-      }
-
-      .probe-item p,
-      .phase-output p,
-      .guard-fallback p,
-      .fuse-box p,
-      .boundary-fallback p,
-      .notes-card li,
-      .composition-note p,
-      .dom-meter span,
-      .meter-wrap p {
-        color: rgba(221, 226, 255, 0.74);
-        line-height: 1.55;
-      }
-
-      .lab-input {
-        flex: 1;
-        min-width: 14rem;
-        border-radius: 0.95rem;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        background: rgba(4, 8, 15, 0.92);
-        color: rgba(244, 246, 255, 0.95);
-        padding: 0.88rem 1rem;
-        font: inherit;
-      }
-
-      .lab-input:focus {
-        outline: 1px solid rgba(164, 172, 255, 0.65);
-      }
-
-      .dom-meter {
-        padding: 1rem;
-        border-radius: 1rem;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-      }
-
-      .boundary-grid {
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      }
-
-      .boundary-label {
-        margin-bottom: 0.55rem;
-      }
-
-      .loading-fallback {
-        border-color: rgba(101, 240, 199, 0.24);
-      }
-
-      .error-fallback {
-        border-color: rgba(255, 133, 173, 0.28);
-      }
-
-      .composition-note {
-        display: grid;
-        gap: 0.85rem;
-        padding: 1rem;
-        border-radius: 1rem;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-      }
-
-      .compact-note {
-        max-width: 30rem;
-      }
-
-      .composition-title {
-        margin: 0;
+        gap: 8px;
       }
 
       .sunrise {
-        color: #ffc282;
-        border-color: rgba(255, 194, 130, 0.35);
-        box-shadow: inset 0 1px 0 rgba(255, 236, 208, 0.08);
+        color: var(--warning) !important;
+        border-color: var(--warning) !important;
       }
 
       .ocean {
-        color: #97ecff;
-        border-color: rgba(151, 236, 255, 0.32);
-        box-shadow: inset 0 1px 0 rgba(219, 248, 255, 0.08);
+        color: #7fc7d9 !important;
+        border-color: #7fc7d9 !important;
       }
 
-      .notes-grid {
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-        margin-top: 1rem;
+      /* FOOTNOTES */
+      .footnotes {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 56px;
+        margin-top: 96px;
+        padding-top: 64px;
+        border-top: 1px solid var(--border-visible);
       }
 
-      .notes-card {
-        padding: 1.25rem;
-        border-radius: 1.25rem;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-      }
-
-      .notes-card h2 {
-        margin-bottom: 0.9rem;
-      }
-
-      .notes-card li + li {
-        margin-top: 0.7rem;
-      }
-
-      .caution-card {
-        background:
-          radial-gradient(circle at top right, rgba(255, 171, 90, 0.13), transparent 35%),
-          linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 28%),
-          rgba(6, 9, 18, 0.74);
-      }
-
-      @media (min-width: 980px) {
-        .hero {
-          grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.8fr);
-          align-items: start;
+      @media (min-width: 720px) {
+        .footnotes {
+          grid-template-columns: 1fr 1fr;
+          gap: 80px;
         }
+      }
+
+      @media (min-width: 1600px) {
+        .footnotes {
+          gap: 160px;
+        }
+      }
+
+      .footnote {
+        display: grid;
+        gap: 20px;
+      }
+
+      .footnote ul {
+        display: grid;
+        gap: 14px;
+      }
+
+      .footnote li {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 14px;
+        font-size: 16px;
+        line-height: 1.55;
+        color: var(--text-primary);
+        padding-bottom: 14px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .footnote li:last-child {
+        border-bottom: none;
+      }
+
+      .footnote li::before {
+        content: '—';
+        color: var(--text-disabled);
+        font-family: var(--font-mono);
+      }
+
+      /* FOOT */
+      .foot {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 64px;
+        padding-top: 24px;
+        border-top: 1px solid var(--border);
       }
     </style>
   </div>
