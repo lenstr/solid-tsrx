@@ -768,6 +768,7 @@ export default component App() {
         grid-template-columns: 1fr;
         gap: 0;
         margin-top: 48px;
+        align-items: start;
       }
 
       @media (min-width: 900px) {
