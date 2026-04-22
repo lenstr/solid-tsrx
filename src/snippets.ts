@@ -21,34 +21,34 @@ return (
   },
   controlFlow: {
     tsrx: `if (!session()) {
-  <p>{'Авторизуйся для доступа к панели.'}</p>
+  <p>{'Please sign in to access the panel.'}</p>
   return;
 }
 
 switch (phase()) {
   case 'idle':
-    <p>{'Стенд ждёт команды.'}</p>
+    <p>{'Bench is idle. Awaiting commands.'}</p>
     break;
   case 'active':
-    <p>{'Рендер горячий, всё реактивно.'}</p>
+    <p>{'Render is hot — everything is reactive.'}</p>
     break;
   default:
-    <p>{'Нужен разбор ошибки.'}</p>
+    <p>{'Needs error investigation.'}</p>
 }`,
     jsx: `if (!session()) {
-  return <p>Авторизуйся для доступа к панели.</p>;
+  return <p>Please sign in to access the panel.</p>;
 }
 
 return (
   <Switch>
     <Match when={phase() === 'idle'}>
-      <p>Стенд ждёт команды.</p>
+      <p>Bench is idle. Awaiting commands.</p>
     </Match>
     <Match when={phase() === 'active'}>
-      <p>Рендер горячий, всё реактивно.</p>
+      <p>Render is hot — everything is reactive.</p>
     </Match>
     <Match when={true}>
-      <p>Нужен разбор ошибки.</p>
+      <p>Needs error investigation.</p>
     </Match>
   </Switch>
 );`,
@@ -86,7 +86,7 @@ return (
 try {
   <AsyncPanel />
 } pending {
-  <p>{'Загрузка…'}</p>
+  <p>{'Loading…'}</p>
 } catch (error) {
   <p>{String(error)}</p>
 }`,
@@ -94,7 +94,7 @@ try {
 
 return (
   <Errored fallback={(error) => <p>{String(error)}</p>}>
-    <Loading fallback={<p>Загрузка…</p>}>
+    <Loading fallback={<p>Loading…</p>}>
       <AsyncPanel />
     </Loading>
   </Errored>
